@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CHORE SLAYER // Cyber-Purge Protocol</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', ' system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            cyber: {
+              bg: '#080b14',
+              panel: '#0f1629',
+              card: '#161f38',
+              border: '#263459',
+              cyan: '#00f2fe',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              rose: '#f43f5e',
+              violet: '#8b5cf6'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: #080b14;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .cyber-glow {
+      box-shadow: 0 0 25px -5px rgba(0, 242, 254, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+    }
+    .cyber-card {
+      background: linear-gradient(180deg, rgba(22, 31, 56, 0.92) 0%, rgba(15, 22, 41, 0.96) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .scanline {
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0, 242, 254, 0.03) 50%, rgba(0, 242, 254, 0.03));
+      background-size: 100% 4px;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #080b14; }
+    ::-webkit-scrollbar-thumb { background: #263459; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+    @keyframes pulse-fast {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(0.98); }
+    }
+    .animate-pulse-fast { animation: pulse-fast 1.4s infinite ease-in-out; }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#080b14] text-slate-100 scanline">
+
+  <!-- TOP NAVIGATION & GLOBAL CHORE PROGRESS BAR -->
+  <header class="sticky top-0 z-30 bg-[#0b1021]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <!-- Brand -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <svg class="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold tracking-tight text-base sm:text-lg bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-sky-200 to-indigo-300">CHORE SLAYER</span>
+            <span class="hidden sm:inline-block text-[10px] mono uppercase px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">v2.4 Engine</span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden md:block">Play the game. Execute real-world digital chores in the background.</p>
+        </div>
+      </div>
+
+      <!-- Global Telemetry Pills -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-1 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-[11px] text-slate-400 hidden sm:inline">Remaining:</span>
+          <span id="hudRemainingCount" class="mono text-xs sm:text-sm font-bold text-cyan-300">5,000</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+          <span class="text-[11px] text-slate-400">Saved:</span>
+          <span id="hudStorageSaved" class="mono text-xs sm:text-sm font-bold text-emerald-400">0 MB</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+          <span class="text-[11px] text-slate-400">Score:</span>
+          <span id="hudScore" class="mono text-xs sm:text-sm font-bold text-amber-400">0</span>
+        </div>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button id="btnOpenCustomData" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5" title="Load Custom Data or Code">
+          <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          <span class="hidden sm:inline">Load Real Data</span>
+        </button>
+        <button id="btnOpenAuditModal" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Audit &amp; Export</span>
+          <span id="badgeExecutedCount" class="mono text-[10px] px-1.5 py-0.2 bg-indigo-500/40 rounded-full text-white">0</span>
+        </button>
+        <button id="btnToggleMute" type="button" class="p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Toggle Synth Audio">
+          <svg id="iconSoundOn" class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+          <svg id="iconSoundOff" class="w-4 h-4 text-rose-400 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CHORE SELECTOR & GAMEPLAY MODE BAR -->
+  <section class="bg-[#0d1326] border-b border-slate-800/80 px-3 sm:px-6 py-2">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+      <!-- 4 Chore Missions -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1" role="tablist">
+        <button type="button" data-chore="emails" class="chore-tab active-chore-tab flex items-center gap-2 px-3 py-2 rounded-lg text-left transition border bg-cyan-500/15 border-cyan-400/60 text-white">
+          <span class="text-lg">📧</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold truncate">5,000 Unread Emails</div>
+            <div class="text-[10px] text-cyan-300 mono truncate" id="subStatEmails">5,000 queued</div>
+          </div>
+        </button>
+        <button type="button" data-chore="folders" class="chore-tab flex items-center gap-2 px-3 py-2 rounded-lg text-left transition border bg-slate-900/70 border-slate-800 hover:border-slate-700 text-slate-300">
+          <span class="text-lg">📁</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold truncate">Messy Folders</div>
+            <div class="text-[10px] text-slate-400 mono truncate" id="subStatFolders">420 scattered files</div>
+          </div>
+        </button>
+        <button type="button" data-chore="expenses" class="chore-tab flex items-center gap-2 px-3 py-2 rounded-lg text-left transition border bg-slate-900/70 border-slate-800 hover:border-slate-700 text-slate-300">
+          <span class="text-lg">💳</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold truncate">Expense Review</div>
+            <div class="text-[10px] text-slate-400 mono truncate" id="subStatExpenses">180 unverified txns</div>
+          </div>
+        </button>
+        <button type="button" data-chore="linter" class="chore-tab flex items-center gap-2 px-3 py-2 rounded-lg text-left transition border bg-slate-900/70 border-slate-800 hover:border-slate-700 text-slate-300">
+          <span class="text-lg">🐛</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold truncate">Fix Lint Errors</div>
+            <div class="text-[10px] text-slate-400 mono truncate" id="subStatLinter">95 AST violations</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Mode Switcher: Arcade Blaster vs Interactive Story RPG -->
+      <div class="flex items-center justify-between sm:justify-end gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+        <button id="modeBtnArcade" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-gradient-to-r from-cyan-500 to-sky-600 text-slate-950 shadow">
+          <span>🕹️</span>
+          <span>Fast-Paced Arcade</span>
+        </button>
+        <button id="modeBtnStory" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-white">
+          <span>⚔️</span>
+          <span>Interactive Story RPG</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE: LEFT/CENTER GAME VIEWPORT + RIGHT LIVE CHORE EXECUTION ENGINE -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+    <!-- GAME STAGE COLUMN (8 COLS ON DESKTOP) -->
+    <div class="lg:col-span-8 flex flex-col gap-3">
+
+      <!-- Progress Bar & Active Wave Info -->
+      <div class="cyber-card rounded-xl p-3 flex flex-col gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span id="missionBadge" class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-semibold mono uppercase text-[11px]">INBOX ZERO PROTOCOL</span>
+            <span id="missionSubtitle" class="text-slate-300 font-medium">Blast spam swarms, capture VIP emails, and trigger batch unsubscribe bombs.</span>
+          </div>
+          <div class="flex items-center gap-3 mono text-xs">
+            <span class="text-amber-400 font-bold" id="comboIndicator">COMBO x1</span>
+            <span class="text-emerald-400 font-bold" id="progressPercentLabel">0.0% Purged</span>
+          </div>
+        </div>
+        <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
+          <div id="choreProgressBar" class="h-full bg-gradient-to-r from-cyan-400 via-sky-500 to-emerald-400 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- VIEWPORT 1: ARCADE CANVAS STAGE -->
+      <div id="arcadeStageContainer" class="relative cyber-card rounded-2xl overflow-hidden cyber-glow">
+        <!-- Top Canvas Overlay HUD -->
+        <div class="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+          <div class="flex items-center gap-2 bg-slate-950/85 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 pointer-events-auto">
+            <div class="text-[11px] text-slate-400"> Hull Integrity</div>
+            <div class="w-24 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="playerHealthBar" class="h-full bg-emerald-400 transition-all" style="width: 100%"></div>
+            </div>
+            <span id="playerHealthText" class="mono text-[11px] font-bold text-emerald-400">100%</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 pointer-events-auto">
+            <button id="btnAutoPilot" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold mono bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/30 transition">
+              🤖 AUTO-BOT: OFF
+            </button>
+            <button id="btnPauseGame" type="button" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold mono bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 transition">
+              ⏸ PAUSE
+            </button>
+          </div>
+        </div>
+
+        <!-- Tactical Decision Modal Overlay (Triggers when hitting VIP/Ambiguous Chore Item) -->
+        <div id="tacticalDecisionOverlay" class="hidden absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div class="max-w-md w-full cyber-card rounded-2xl p-5 border-2 border-amber-400/60 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold mono bg-amber-500/20 text-amber-300 border border-amber-400/40">⚡ HIGH-PRIORITY TRIAGE INTERCEPT</span>
+              <span class="mono text-xs text-slate-400">SLOW-MO ACTIVE</span>
+            </div>
+            <div class="bg-slate-950/90 rounded-xl p-3.5 border border-slate-800 space-y-1.5">
+              <div id="tacticalItemCategory" class="text-[11px] mono text-cyan-400 uppercase font-semibold">VIP SENDER DETECTED</div>
+              <div id="tacticalItemTitle" class="text-base font-bold text-white break-words">Q4 Board Deck & Expense Sign-off</div>
+              <div id="tacticalItemMeta" class="text-xs text-slate-400 mono break-words">From: cfo@acme-corp.com • Size: 4.2 MB</div>
+              <p id="tacticalItemPreview" class="text-xs text-slate-300 pt-1 border-t border-slate-800/80">Please confirm final numbers before Friday's audit deadline.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button id="btnTacticalPurge" type="button" class="px-3 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 font-bold text-xs transition flex flex-col items-center gap-0.5">
+                <span>🔥 PURGE / DELETE</span>
+                <span class="text-[10px] font-normal text-rose-200/80">[Key: 1] +250 XP</span>
+              </button>
+              <button id="btnTacticalArchive" type="button" class="px-3 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 font-bold text-xs transition flex flex-col items-center gap-0.5">
+                <span>📦 ARCHIVE / FILE</span>
+                <span class="text-[10px] font-normal text-cyan-200/80">[Key: 2] +350 XP</span>
+              </button>
+              <button id="btnTacticalKeep" type="button" class="px-3 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-300 font-bold text-xs transition flex flex-col items-center gap-0.5">
+                <span>⭐ KEEP / APPROVE</span>
+                <span class="text-[10px] font-normal text-emerald-200/80">[Key: 3] +500 XP</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- HTML5 Game Canvas -->
+        <div id="canvasWrapper" class="w-full h-[380px] sm:h-[450px] relative bg-[#060913]">
+          <canvas id="choreCanvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Mobile & Desktop On-Screen Controls Bar -->
+        <div class="bg-[#0b1021] border-t border-slate-800/90 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+          <!-- Directional Touch Pad for Mobile / Tablet -->
+          <div class="flex items-center gap-1.5">
+            <button id="btnMoveLeft" type="button" class="w-11 h-10 rounded-xl bg-slate-800 active:bg-cyan-500/30 border border-slate-700 flex items-center justify-center text-base font-bold text-slate-200 select-none" aria-label="Move Left">◀</button>
+            <button id="btnMoveUp" type="button" class="w-11 h-10 rounded-xl bg-slate-800 active:bg-cyan-500/30 border border-slate-700 flex items-center justify-center text-base font-bold text-slate-200 select-none" aria-label="Move Up">▲</button>
+            <button id="btnMoveDown" type="button" class="w-11 h-10 rounded-xl bg-slate-800 active:bg-cyan-500/30 border border-slate-700 flex items-center justify-center text-base font-bold text-slate-200 select-none" aria-label="Move Down">▼</button>
+            <button id="btnMoveRight" type="button" class="w-11 h-10 rounded-xl bg-slate-800 active:bg-cyan-500/30 border border-slate-700 flex items-center justify-center text-base font-bold text-slate-200 select-none" aria-label="Move Right">▶</button>
+            <span class="hidden md:inline-block text-[11px] text-slate-400 ml-2 mono">WASD / Arrows / Touch Drag on Canvas</span>
+          </div>
+
+          <!-- Weapon & Batch Execution Triggers -->
+          <div class="flex items-center gap-2">
+            <button id="btnFireLaser" type="button" class="px-3.5 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 active:scale-95 border border-rose-500/50 text-rose-300 font-bold text-xs transition flex items-center gap-1.5">
+              <span>⚡</span>
+              <span id="labelPrimaryAction">PURGE LASER</span>
+              <span class="hidden sm:inline text-[10px] mono opacity-75">[SPACE]</span>
+            </button>
+            <button id="btnArchiveBeam" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 border border-emerald-500/50 text-emerald-300 font-bold text-xs transition flex items-center gap-1.5">
+              <span>🛡️</span>
+              <span id="labelSecondaryAction">SAFE ARCHIVE</span>
+              <span class="hidden sm:inline text-[10px] mono opacity-75">[E]</span>
+            </button>
+            <button id="btnMegaBomb" type="button" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-slate-950 font-extrabold text-xs transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20">
+              <span>💥</span>
+              <span>MEGA BATCH</span>
+              <span id="bombCountBadge" class="mono text-[10px] px-1.5 py-0.2 bg-slate-950/30 rounded-full text-white">3</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEWPORT 2: INTERACTIVE STORY RPG STAGE (HIDDEN UNLESS STORY MODE SELECTED) -->
+      <div id="storyStageContainer" class="hidden cyber-card rounded-2xl p-4 sm:p-6 cyber-glow space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <span class="text-[11px] mono uppercase text-violet-400 font-semibold">NARRATIVE DUNGEON // REAL-TIME BATCH EXECUTOR</span>
+            <h2 id="storyChapterTitle" class="text-lg sm:text-xl font-extrabold text-white">Chapter 1: The Citadel of 5,000 Unread Scrolls</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-xs mono font-semibold" id="storyTurnBadge">Encounter #1</span>
+          </div>
+        </div>
+
+        <!-- Boss / Encounter Card -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-950/80 rounded-xl p-4 border border-slate-800/90">
+          <!-- Avatar & Boss Stats -->
+          <div class="md:col-span-4 flex flex-col items-center justify-center p-4 rounded-xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 text-center">
+            <div id="storyBossAvatar" class="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-4xl mb-3 shadow-inner">
+              👾
+            </div>
+            <div id="storyBossName" class="font-extrabold text-base text-white">Hydra Promo-Swarm</div>
+            <div id="storyBossRole" class="text-xs text-cyan-400 mono mb-2">Cluster: 480 Marketing Emails</div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div id="storyBossHpBar" class="bg-rose-500 h-full transition-all duration-300" style="width: 100%"></div>
+            </div>
+            <div id="storyBossHpText" class="text-[11px] mono text-slate-400 mt-1">Cluster Load: 480 items (14.2 MB)</div>
+          </div>
+
+          <!-- Narrative Dialogue & Real Payload Inspection -->
+          <div class="md:col-span-8 flex flex-col justify-between space-y-3">
+            <div class="space-y-2">
+              <p id="storyNarrativeText" class="text-sm text-slate-200 leading-relaxed">
+                A towering wall of unread promotional newsletters blocks the neural gateway. Among the 480 messages from <span class="text-cyan-300 mono">deals@mega-retail-blast.io</span>, sensors detect zero human replies in the last 18 months. How do you command your daemon?
+              </p>
+              <!-- Real Chore Sample Box -->
+              <div class="bg-[#080b14] rounded-lg p-3 border border-slate-800/90 space-y-1">
+                <div class="flex items-center justify-between text-[11px] mono text-slate-400">
+                  <span>LIVE PAYLOAD PREVIEW (REAL DATA QUEUE)</span>
+                  <span id="storySampleCount" class="text-emerald-400">Batch Size: 480 items</span>
+                </div>
+                <div id="storyPayloadPreview" class="mono text-xs text-cyan-200 space-y-1 max-h-24 overflow-y-auto pt-1">
+                </div>
+              </div>
+            </div>
+
+            <!-- Story Decisions -->
+            <div id="storyChoicesGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK UPGRADES / POWER-UPS STRIP -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <button id="upgradeSpreadBtn" type="button" class="cyber-card hover:border-cyan-400/60 rounded-xl p-3 text-left transition flex items-center justify-between group">
+          <div>
+            <div class="text-xs font-bold text-white group-hover:text-cyan-300 transition">⚡ Multi-Thread Blaster</div>
+            <div class="text-[11px] text-slate-400">Fires 3-way parallel chore beams</div>
+          </div>
+          <span id="upgradeSpreadBadge" class="mono text-xs font-bold px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">500 PTS</span>
+        </button>
+
+        <button id="upgradeMagnetBtn" type="button" class="cyber-card hover:border-emerald-400/60 rounded-xl p-3 text-left transition flex items-center justify-between group">
+          <div>
+            <div class="text-xs font-bold text-white group-hover:text-emerald-300 transition">🧲 AI Auto-Classifier</div>
+            <div class="text-[11px] text-slate-400">Auto-captures safe VIP items nearby</div>
+          </div>
+          <span id="upgradeMagnetBadge" class="mono text-xs font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">750 PTS</span>
+        </button>
+
+        <button id="upgradeBombBtn" type="button" class="cyber-card hover:border-amber-400/60 rounded-xl p-3 text-left transition flex items-center justify-between group">
+          <div>
+            <div class="text-xs font-bold text-white group-hover:text-amber-300 transition">💥 Refill Mega-Batch Bomb</div>
+            <div class="text-[11px] text-slate-400">Instantly clears +500 chore items</div>
+          </div>
+          <span id="upgradeBombCostBadge" class="mono text-xs font-bold px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">400 PTS</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: REAL-TIME BACKGROUND CHORE EXECUTION ENGINE (4 COLS ON DESKTOP) -->
+    <aside class="lg:col-span-4 flex flex-col gap-3">
+      <!-- Live Background Worker Panel -->
+      <div class="cyber-card rounded-2xl p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider mono text-slate-200">Background Chore Worker</h3>
+          </div>
+          <span id="workerStatusChip" class="text-[10px] mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">SYNCED // 60Hz</span>
+        </div>
+
+        <!-- KPI Mini-Grid -->
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2">
+            <div class="text-[10px] text-slate-400 uppercase mono">Purged</div>
+            <div id="statPurgedCount" class="text-sm sm:text-base font-extrabold text-rose-400 mono">0</div>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2">
+            <div class="text-[10px] text-slate-400 uppercase mono">Filed / Fixed</div>
+            <div id="statOrganizedCount" class="text-sm sm:text-base font-extrabold text-emerald-400 mono">0</div>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-2">
+            <div class="text-[10px] text-slate-400 uppercase mono">Time Saved</div>
+            <div id="statTimeSaved" class="text-sm sm:text-base font-extrabold text-cyan-300 mono">0m</div>
+          </div>
+        </div>
+
+        <!-- Live Execution Terminal Log -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-[11px] mono text-slate-400">
+            <span>REAL-TIME EXECUTION STREAM</span>
+            <button id="btnClearLog" type="button" class="text-slate-400 hover:text-cyan-300 underline">Clear</button>
+          </div>
+          <div id="executionStreamLog" class="bg-[#050811] border border-slate-800 rounded-xl p-2.5 h-48 overflow-y-auto mono text-[11px] space-y-1.5">
+          </div>
+        </div>
+
+        <!-- Live Code / Script / Artifact Diff Preview -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-[11px] mono text-slate-400">
+            <span id="liveArtifactHeader">GENERATED REAL-WORLD OUTPUT</span>
+            <button id="btnCopyArtifact" type="button" class="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1">
+              <span>Copy Output</span>
+            </button>
+          </div>
+          <pre id="liveArtifactPreview" class="bg-[#050811] border border-slate-800 rounded-xl p-2.5 h-44 overflow-auto mono text-[11px] text-emerald-300 leading-relaxed whitespace-pre-wrap"></pre>
+        </div>
+
+        <!-- Export & Undo Actions -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button id="btnUndoLastAction" type="button" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5">
+            <span>↩</span>
+            <span>Undo Last Batch</span>
+          </button>
+          <button id="btnDownloadOutput" type="button" class="px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-md">
+            <span>⬇</span>
+            <span>Download Result</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- MODAL 1: AUDIT & EXPORT INSPECTOR -->
+  <div id="auditModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
+    <div class="max-w-3xl w-full cyber-card rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+      <div class="px-5 py-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-white">Real-World Chore Audit &amp; Deliverable Export</h3>
+          <p class="text-xs text-slate-400">Review every background operation triggered by your gameplay or revert individual items.</p>
+        </div>
+        <button id="btnCloseAuditModal" type="button" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">✕</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/90 p-3 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-300">
+            <span class="font-bold text-cyan-300" id="modalTotalExecuted">0</span> total operations verified. Ready to export executable script, cleaned code, or CSV report.
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnModalDownloadScript" type="button" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
+              Download Executed Artifact
+            </button>
+          </div>
+        </div>
+
+        <div class="border border-slate-800 rounded-xl overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 mono uppercase text-[10px]">
+              <tr>
+                <th class="py-2.5 px-3">Chore Domain</th>
+                <th class="py-2.5 px-3">Target Entity</th>
+                <th class="py-2.5 px-3">Operation Executed</th>
+                <th class="py-2.5 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody" class="divide-y divide-slate-800/70 bg-slate-950/60 mono text-[11px]">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: LOAD CUSTOM REAL DATA / SOURCE CODE -->
+  <div id="customDataModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
+    <div class="max-w-2xl w-full cyber-card rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+      <div class="px-5 py-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-white">Inject Real Custom Chore Data</h3>
+          <p class="text-xs text-slate-400">Paste your own messy code to lint, CSV expense rows, file paths, or email list to gamify right now.</p>
+        </div>
+        <button id="btnCloseCustomDataModal" type="button" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">✕</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <div class="space-y-1.5">
+          <label for="customDataChoreSelect" class="block text-xs font-semibold text-slate-300">Target Chore Engine:</label>
+          <select id="customDataChoreSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+            <option value="linter">🐛 Code Linter (Paste JS / Java / Python code with lint issues)</option>
+            <option value="expenses">💳 Expense Reviewer (Paste CSV lines: Vendor,Amount,Category)</option>
+            <option value="folders">📁 Folder Sorter (Paste messy filenames, one per line)</option>
+            <option value="emails">📧 Email Purge (Paste Sender,Subject,Count lines)</option>
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="customDataTextarea" class="block text-xs font-semibold text-slate-300">Raw Input Payload:</label>
+          <textarea id="customDataTextarea" rows="8" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mono text-xs text-cyan-200 focus:outline-none focus:border-cyan-400" placeholder="var oldCounter = 10; console.log('debug leak');&#10;var unusedFlag = true;"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2">
+          <button id="btnLoadSampleCustom" type="button" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+            Fill Sample Messy Code
+          </button>
+          <button id="btnApplyCustomData" type="button" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 text-slate-950 text-xs font-extrabold">
+            Inject &amp; Spawn Enemies
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastBanner" class="fixed bottom-4 right-4 z-50 hidden bg-slate-900/95 border border-cyan-400/50 text-slate-100 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-medium flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+    <span id="toastMessage">Operation executed.</span>
+  </div>
+
+  <script>
+    // =========================================================================
+    // CHORE SLAYER // REAL-TIME BACKGROUND CHORE ENGINE + ARCADE & STORY RPG
+    // =========================================================================
+
+    const SoundFX = {
+      ctx: null,
+      muted: false,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      play(type) {
+        if (this.muted) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          if (type === 'laser') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(680, now);
+            osc.frequency.exponentialRampToValueAtTime(140, now + 0.11);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.11);
+            osc.start(now);
+            osc.stop(now + 0.11);
+          } else if (type === 'archive') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(420, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.16);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.16);
+            osc.start(now);
+            osc.stop(now + 0.16);
+          } else if (type === 'explosion') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.exponentialRampToValueAtTime(38, now + 0.24);
+            gain.gain.setValueAtTime(0.14, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.24);
+            osc.start(now);
+            osc.stop(now + 0.24);
+          } else if (type === 'bomb') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(28, now + 0.45);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.45);
+            osc.start(now);
+            osc.stop(now + 0.45);
+          }
+        } catch (e) {}
+      }
+    };
+
+    // Initial Datasets for all 4 Real-World Chore Domains
+    const CHORE_DATASETS = {
+      emails: {
+        title: 'INBOX ZERO PROTOCOL',
+        subtitle: 'Blast spam swarms, capture VIP emails, and trigger batch unsubscribe bombs.',
+        primaryLabel: 'UNSUB & PURGE',
+        secondaryLabel: 'VIP ARCHIVE',
+        totalRemaining: 5000,
+        initialTotal: 5000,
+        queue: [
+          { id: 'em-1', label: 'FlashDeals Daily (420)', sender: 'promo@flashdeals-daily.io', subject: '🔥 80% OFF LAST CHANCE FLASH SALE!!', count: 420, sizeMB: 18.4, isVip: false, cmd: 'IMAP UID STORE 1001:1420 +FLAGS (\\Deleted) & List-Unsubscribe' },
+          { id: 'em-2', label: 'CryptoDigest Bot (610)', sender: 'newsletter@crypto-moon-digest.org', subject: 'Top 10 Altcoins Pumping This Hour', count: 610, sizeMB: 24.1, isVip: false, cmd: 'IMAP UID STORE 1421:2030 +FLAGS (\\Deleted) & Block Domain' },
+          { id: 'em-3', label: 'SaaS Telemetry (540)', sender: 'noreply@cloud-cron-alerts.net', subject: '[INFO] Automated Nightly Build #9482 Passed', count: 540, sizeMB: 11.2, isVip: false, cmd: 'GMAIL FILTER: from:(noreply@cloud-cron-alerts.net) -> Auto-Archive & Purge' },
+          { id: 'em-4', label: 'VIP: Q4 Board Sign-off', sender: 'cfo@acme-global.com', subject: 'URGENT: Q4 Budget Approval & Wire Sign-Off', count: 1, sizeMB: 4.2, isVip: true, preview: 'Need your sign-off on the revised engineering budget before 5 PM.', cmd: 'STARRED + MOVED TO /Priority/Executive' },
+          { id: 'em-5', label: 'Social Pulse (780)', sender: 'updates@social-graph-notify.com', subject: '47 people viewed your profile this week!', count: 780, sizeMB: 31.0, isVip: false, cmd: 'IMAP UID EXPUNGE 2031:2810 + Revoke Notification Token' },
+          { id: 'em-6', label: 'Cold Outreach AI (490)', sender: 'growth@b2b-leadgen-sequence.io', subject: 'Quick question about your calendar next Tuesday?', count: 490, sizeMB: 9.8, isVip: false, cmd: 'SPAM REPORT + DOMAIN MUTE: b2b-leadgen-sequence.io' },
+          { id: 'em-7', label: 'VIP: Tax Receipt 2026', sender: 'statements@fidelity-tax-vault.com', subject: 'Your Official Form 1099 Consolidated Statement', count: 1, sizeMB: 2.8, isVip: true, preview: 'Official annual tax documentation attached for your CPA.', cmd: 'LABELED [Finance/Taxes-2026] & Archived Safely' },
+          { id: 'em-8', label: 'Expired Coupons (660)', sender: 'rewards@super-mart-flyer.com', subject: 'Your $5 coupon expired 14 months ago', count: 660, sizeMB: 29.5, isVip: false, cmd: 'BATCH TRASH 660 threads older than 365d' }
+        ]
+      },
+      folders: {
+        title: 'DESKTOP & DOWNLOADS SANITIZER',
+        subtitle: 'Purge duplicate installers & temp junk; route real documents into clean folders.',
+        primaryLabel: 'RM -RF JUNK',
+        secondaryLabel: 'SORT TO FOLDER',
+        totalRemaining: 420,
+        initialTotal: 420,
+        queue: [
+          { id: 'fl-1', label: 'ChromeSetup (14).dmg', sender: '~/Downloads/ChromeSetup (14).dmg', subject: 'Duplicate Installer Binary (245 MB)', count: 28, sizeMB: 245.0, isVip: false, cmd: 'rm -f ~/Downloads/*Setup*.dmg ~/Downloads/*\\([0-9]*\\).dmg' },
+          { id: 'fl-2', label: 'Screenshot 2026-03.png', sender: '~/Desktop/Screenshot_2026_*.png', subject: '84 Unsorted Desktop Screenshots', count: 84, sizeMB: 112.4, isVip: true, preview: 'Product UI wireframes and bug captures scattered across Desktop.', cmd: 'mv ~/Desktop/Screenshot_*.png ~/Pictures/Screenshots/2026/' },
+          { id: 'fl-3', label: 'node_modules_old.zip', sender: '~/Downloads/node_modules_old_backup.zip', subject: 'Stale Archive Cache (480 MB)', count: 45, sizeMB: 480.0, isVip: false, cmd: 'rm -rf ~/Downloads/node_modules_old_backup.zip' },
+          { id: 'fl-4', label: 'Signed_Contract_v4.pdf', sender: '~/Downloads/Signed_MSA_Contract_FINAL_v4.pdf', subject: 'Executed Client Master Services Agreement', count: 12, sizeMB: 18.6, isVip: true, preview: 'Counter-signed legal PDF contracts found in Downloads.', cmd: 'mv ~/Downloads/*Contract*.pdf ~/Documents/Legal/Contracts/' },
+          { id: 'fl-5', label: '.DS_Store & Thumbs.db', sender: '~/Desktop/**/.DS_Store', subject: '110 Orphaned OS Metadata Files', count: 110, sizeMB: 4.5, isVip: false, cmd: 'find ~/Desktop -name ".DS_Store" -o -name "Thumbs.db" -delete' },
+          { id: 'fl-6', label: 'Q3_Tax_Invoices.xlsx', sender: '~/Desktop/copy_of_Q3_Tax_Invoices_v2.xlsx', subject: 'Financial Spreadsheets & CSV Exports', count: 35, sizeMB: 14.2, isVip: true, preview: 'Quarterly accounting exports sitting on Desktop.', cmd: 'mv ~/Desktop/*Tax*.xlsx ~/Documents/Finance/2026/' }
+        ]
+      },
+      expenses: {
+        title: 'EXPENSE & SUBSCRIPTION AUDITOR',
+        subtitle: 'Slash zombie SaaS subscriptions & duplicate charges; approve valid tax write-offs.',
+        primaryLabel: 'DISPUTE / CANCEL',
+        secondaryLabel: 'APPROVE WRITE-OFF',
+        totalRemaining: 180,
+        initialTotal: 180,
+        queue: [
+          { id: 'ex-1', label: '$199 Zombie SaaS Seat', sender: 'Auto-Renewal: LegacyAnalytics.io', subject: 'Unused Pro Plan (0 logins in 9 months)', count: 18, sizeMB: 19.9, isVip: false, cmd: 'CANCEL SUBSCRIPTION #SUB-8841 & Request $199 Prorated Refund' },
+          { id: 'ex-2', label: '$84 AWS Production DB', sender: 'Amazon Web Services Inc.', subject: 'Monthly Cloud Infrastructure Invoice', count: 15, sizeMB: 8.4, isVip: true, preview: 'Core production cluster hosting billing receipt.', cmd: 'APPROVED [Code: 6120-Cloud-Infra] -> Synced to Ledger' },
+          { id: 'ex-3', label: '$49.99 Duplicate Charge', sender: 'StreamFlix Ultra Double-Bill', subject: 'Billed twice on same credit card statement', count: 22, sizeMB: 5.0, isVip: false, cmd: 'FLAGGED DUPLICATE TXN #99201 -> Auto-Dispute Filed' },
+          { id: 'ex-4', label: '$142 Client Dinner', sender: 'Bistro Cyberia - Receipt #402', subject: 'Q4 Enterprise Partnership Kickoff', count: 20, sizeMB: 14.2, isVip: true, preview: 'Verified receipt image attached; 4 attendees listed.', cmd: 'APPROVED [Code: 5400-Meals-50%] -> Marked Tax Deductible' },
+          { id: 'ex-5', label: '$29 Mystery Trial Fee', sender: 'PDF-Converter-Pro-24.com', subject: 'Hidden recurring charge after 1-day trial', count: 35, sizeMB: 2.9, isVip: false, cmd: 'VIRTUAL CARD REVOKED + Merchant Blocked: PDF-Converter-Pro' }
+        ]
+      },
+      linter: {
+        title: 'AST LINT & BUG EXTERMINATOR',
+        subtitle: 'Shoot syntax glitches and security anti-patterns to auto-refactor live source code.',
+        primaryLabel: 'AUTO-FIX AST',
+        secondaryLabel: 'SAFE GUARD',
+        totalRemaining: 95,
+        initialTotal: 95,
+        codeLines: [
+          { line: 12, rule: 'no-var', bad: 'var activeConnections = 0;', fixed: 'const activeConnections = 0;', fixedState: false },
+          { line: 19, rule: 'no-console', bad: 'console.log("DEBUG SECRET TOKEN:", apiKey);', fixed: '// [SANITIZED] Removed secret token console leak', fixedState: false },
+          { line: 27, rule: 'eqeqeq', bad: 'if (userRole == "admin") {', fixed: 'if (userRole === "admin") {', fixedState: false },
+          { line: 34, rule: 'no-unused-vars', bad: 'let deprecatedTempBuffer = new Array(1024);', fixed: '// [PURGED] Removed unused memory allocation', fixedState: false },
+          { line: 48, rule: 'null-check', bad: 'return response.data.items.map(x => x.id);', fixed: 'return (response?.data?.items ?? []).map(x => x.id);', fixedState: false },
+          { line: 63, rule: 'sql-injection', bad: 'db.query("SELECT * FROM users WHERE id = " + req.id);', fixed: 'db.query("SELECT * FROM users WHERE id = $1", [req.id]);', fixedState: false },
+          { line: 79, rule: 'missing-await', bad: 'saveAuditRecord(payload);', fixed: 'await saveAuditRecord(payload);', fixedState: false }
+        ],
+        queue: [
+          { id: 'ln-1', label: 'no-var (Line 12)', sender: 'src/server/PaymentEngine.js:12', subject: 'var activeConnections = 0;', count: 14, sizeMB: 1.2, isVip: false, lineIdx: 0, cmd: 'AST Fix Line 12: replaced legacy `var` with immutable `const`' },
+          { id: 'ln-2', label: 'Secret Leak (Line 19)', sender: 'src/auth/TokenService.js:19', subject: 'console.log("DEBUG SECRET TOKEN:", apiKey);', count: 16, sizeMB: 2.4, isVip: false, lineIdx: 1, cmd: 'SECURITY FIX Line 19: stripped credential leak from stdout' },
+          { id: 'ln-3', label: 'Loose == (Line 27)', sender: 'src/auth/RoleGuard.js:27', subject: 'if (userRole == "admin")', count: 12, sizeMB: 1.1, isVip: false, lineIdx: 2, cmd: 'AST Fix Line 27: enforced strict equality `===`' },
+          { id: 'ln-4', label: 'Unused Alloc (Line 34)', sender: 'src/worker/BufferPool.js:34', subject: 'let deprecatedTempBuffer = new Array(1024);', count: 15, sizeMB: 4.0, isVip: false, lineIdx: 3, cmd: 'DEAD CODE ELIMINATED Line 34: freed 1024-slot buffer' },
+          { id: 'ln-5', label: 'Null Guard (Line 48)', sender: 'src/api/ClientMapper.js:48', subject: 'return response.data.items.map(...)', count: 14, sizeMB: 1.8, isVip: true, lineIdx: 4, preview: 'Unprotected deep property access risks TypeError crash in production.', cmd: 'OPTIONAL CHAINING APPLIED Line 48: response?.data?.items ?? []' },
+          { id: 'ln-6', label: 'SQLi Risk (Line 63)', sender: 'src/db/UserRepo.java:63', subject: 'db.query("SELECT * FROM users WHERE id = " + req.id)', count: 14, sizeMB: 3.5, isVip: true, lineIdx: 5, preview: 'String concatenation in SQL query detected.', cmd: 'PARAMETERIZED QUERY APPLIED Line 63: prevented SQL injection' },
+          { id: 'ln-7', label: 'Unawaited Async (Line 79)', sender: 'src/audit/Logger.js:79', subject: 'saveAuditRecord(payload);', count: 10, sizeMB: 1.5, isVip: false, lineIdx: 6, cmd: 'ASYNC/AWAIT FIX Line 79: prepended `await` to promise call' }
+        ]
+      }
+    };
+
+    // Global App State
+    const AppState = {
+      activeChore: 'emails',
+      gameMode: 'arcade', // 'arcade' or 'story'
+      score: 0,
+      combo: 1,
+      storageSavedMB: 0,
+      purgedCount: 0,
+      organizedCount: 0,
+      timeSavedMinutes: 0,
+      megaBombs: 3,
+      spreadShotUnlocked: false,
+      magnetUnlocked: false,
+      autoPilot: false,
+      paused: false,
+      tacticalOverlayActive: false,
+      pendingTacticalTarget: null,
+      executedHistory: [],
+      storyEncounterIndex: 0,
+      storyClusterHp: 100
+    };
+
+    // =========================================================================
+    // HTML5 CANVAS ARCADE ENGINE
+    // =========================================================================
+    const canvas = document.getElementById('choreCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const Player = {
+      x: 200,
+      y: 320,
+      w: 40,
+      h: 40,
+      speed: 5.5,
+      hp: 100,
+      vx: 0,
+      vy: 0,
+      cooldown: 0
+    };
+
+    let bullets = [];
+    let enemies = [];
+    let particles = [];
+    let stars = [];
+    let keys = {};
+    let spawnTimer = 0;
+
+    function resizeCanvas() {
+      const wrapper = document.getElementById('canvasWrapper');
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      canvas.width = Math.max(320, rect.width);
+      canvas.height = Math.max(320, rect.height);
+      Player.x = Math.min(Math.max(30, Player.x), canvas.width - 30);
+      Player.y = Math.min(Math.max(40, Player.y), canvas.height - 35);
+      if (stars.length === 0) {
+        for (let i = 0; i < 55; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.6 + 0.4,
+            s: Math.random() * 0.8 + 0.2
+          });
+        }
+      }
+    }
+
+    function spawnEnemy() {
+      const dataset = CHORE_DATASETS[AppState.activeChore];
+      if (dataset.totalRemaining <= 0) return;
+      const template = dataset.queue[Math.floor(Math.random() * dataset.queue.length)];
+      const isVip = template.isVip;
+      const margin = 65;
+      const x = margin + Math.random() * Math.max(60, canvas.width - margin * 2);
+      enemies.push({
+        id: template.id + '-' + Math.random().toString(36).slice(2, 6),
+        template,
+        x,
+        y: -35,
+        r: isVip ? 24 : 20,
+        vy: isVip ? 0.95 : (1.15 + Math.random() * 0.75),
+        vx: (Math.random() - 0.5) * 0.8,
+        hp: isVip ? 2 : 1,
+        isVip
+      });
+    }
+
+    function fireWeapon(mode) {
+      if (AppState.paused || AppState.tacticalOverlayActive) return;
+      SoundFX.play(mode === 'archive' ? 'archive' : 'laser');
+      const color = mode === 'archive' ? '#10b981' : '#00f2fe';
+      const angles = AppState.spreadShotUnlocked ? [-0.2, 0, 0.2] : [0];
+      angles.forEach(angle => {
+        bullets.push({
+          x: Player.x,
+          y: Player.y - 18,
+          vx: Math.sin(angle) * 7,
+          vy: -Math.cos(angle) * 8.5,
+          mode,
+          color
+        });
+      });
+    }
+
+    function createBurst(x, y, color, label) {
+      for (let i = 0; i < 14; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 3.8 + 0.8;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          life: 1,
+          color
+        });
+      }
+      if (label) {
+        particles.push({
+          x,
+          y: y - 10,
+          vx: 0,
+          vy: -1.1,
+          life: 1.2,
+          color: '#f8fafc',
+          text: label
+        });
+      }
+    }
+
+    // =========================================================================
+    // REAL CHORE EXECUTION RECORDING & ARTIFACT UPDATER
+    // =========================================================================
+    function executeRealChoreItem(template, decisionType, batchMultiplier = 1) {
+      const dataset = CHORE_DATASETS[AppState.activeChore];
+      const rawBatch = Math.max(1, Math.round((template.count || 10) * batchMultiplier * 0.25));
+      const actualDelta = Math.min(dataset.totalRemaining, rawBatch);
+
+      if (actualDelta <= 0 && dataset.totalRemaining <= 0) {
+        return;
+      }
+
+      dataset.totalRemaining = Math.max(0, dataset.totalRemaining - actualDelta);
+
+      const mbDelta = +(template.sizeMB * 0.25 * batchMultiplier).toFixed(1);
+      AppState.storageSavedMB = +(AppState.storageSavedMB + mbDelta).toFixed(1);
+
+      if (decisionType === 'PURGE') {
+        AppState.purgedCount += actualDelta;
+      } else {
+        AppState.organizedCount += actualDelta;
+      }
+
+      AppState.timeSavedMinutes = Math.round((AppState.purgedCount + AppState.organizedCount) * 0.12);
+      const points = actualDelta * 15 * AppState.combo;
+      AppState.score += points;
+      AppState.combo = Math.min(16, AppState.combo + 1);
+
+      // If in Linter mode, mutate the live code AST lines!
+      if (AppState.activeChore === 'linter' && typeof template.lineIdx === 'number') {
+        const codeObj = CHORE_DATASETS.linter.codeLines[template.lineIdx];
+        if (codeObj) codeObj.fixedState = true;
+      }
+
+      const opVerb = decisionType === 'PURGE' ? 'PURGED' : (decisionType === 'ARCHIVE' ? 'ARCHIVED' : 'APPROVED');
+      const record = {
+        uid: 'op-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
+        chore: AppState.activeChore,
+        entity: template.label,
+        sender: template.sender,
+        decision: opVerb,
+        delta: actualDelta,
+        mb: mbDelta,
+        cmd: template.cmd,
+        lineIdx: template.lineIdx,
+        timestamp: new Date().toLocaleTimeString()
+      };
+
+      AppState.executedHistory.unshift(record);
+      appendExecutionStream(record);
+      refreshAllTelemetry();
+    }
+
+    function appendExecutionStream(rec) {
+      const stream = document.getElementById('executionStreamLog');
+      if (!stream) return;
+      const div = document.createElement('div');
+      const badgeColor = rec.decision === 'PURGED' ? 'text-rose-400' : 'text-emerald-400';
+      div.className = 'border-l-2 border-cyan-500/60 pl-2 py-0.5 bg-slate-900/50 rounded-r';
+      div.innerHTML = `<span class="text-slate-500">[${rec.timestamp}]</span> <span class="${badgeColor} font-bold">${rec.decision}</span> <span class="text-slate-200">${rec.entity}</span> <span class="text-cyan-400 block truncate">${rec.cmd}</span>`;
+      stream.prepend(div);
+      while (stream.children.length > 30) {
+        stream.removeChild(stream.lastChild);
+      }
+    }
+
+    function buildLiveArtifactOutput() {
+      const chore = AppState.activeChore;
+      const headerEl = document.getElementById('liveArtifactHeader');
+      if (chore === 'linter') {
+        if (headerEl) headerEl.textContent = 'LIVE REFACTORED CODE (AST SANITIZED)';
+        return CHORE_DATASETS.linter.codeLines.map(item => {
+          const prefix = item.fixedState ? '✅ ' : '⚠️ ';
+          const code = item.fixedState ? item.fixed : item.bad;
+          return `${String(item.line).padStart(2, '0')} | ${prefix}${code}`;
+        }).join('\n');
+      }
+
+      if (chore === 'folders') {
+        if (headerEl) headerEl.textContent = 'GENERATED BASH / ORGANIZER SCRIPT';
+        const folderOps = AppState.executedHistory.filter(r => r.chore === 'folders').slice(0, 12);
+        const lines = [
+          '#!/usr/bin/env bash',
+          '# Auto-Generated by CHORE SLAYER Folder Sanitizer',
+          'mkdir -p ~/Documents/Finance/2026 ~/Documents/Legal/Contracts ~/Pictures/Screenshots/2026'
+        ];
+        if (folderOps.length === 0) {
+          lines.push('# Blast or Archive falling files in the game to populate commands...');
+        } else {
+          folderOps.forEach(op => lines.push(op.cmd));
+        }
+        return lines.join('\n');
+      }
+
+      if (chore === 'expenses') {
+        if (headerEl) headerEl.textContent = 'AUDITED EXPENSE LEDGER (CSV)';
+        const expOps = AppState.executedHistory.filter(r => r.chore === 'expenses').slice(0, 12);
+        const rows = ['Timestamp,Vendor_Item,Status,Batch_Count,Command_Notes'];
+        expOps.forEach(op => {
+          rows.push(`"${op.timestamp}","${op.entity}","${op.decision}",${op.delta},"${op.cmd.replace(/"/g, "'")}"`);
+        });
+        if (expOps.length === 0) {
+          rows.push('# Play to audit expenses and generate CSV rows...');
+        }
+        return rows.join('\n');
+      }
+
+      // Default: emails
+      if (headerEl) headerEl.textContent = 'IMAP / GMAIL BATCH EXECUTION MANIFEST';
+      const emailOps = AppState.executedHistory.filter(r => r.chore === 'emails').slice(0, 12);
+      const out = [
+        '# CHORE SLAYER // GMAIL & IMAP PURGE LOG',
+        `# Remaining Unread Queue: ${CHORE_DATASETS.emails.totalRemaining.toLocaleString()} emails`
+      ];
+      if (emailOps.length === 0) {
+        out.push('# Shoot spam swarms or use Mega Batch to log IMAP operations...');
+      } else {
+        emailOps.forEach(op => out.push(`[${op.decision} x${op.delta}] ${op.cmd}`));
+      }
+      return out.join('\n');
+    }
+
+    function refreshAllTelemetry() {
+      const ds = CHORE_DATASETS[AppState.activeChore];
+      document.getElementById('hudRemainingCount').textContent = ds.totalRemaining.toLocaleString();
+      document.getElementById('hudStorageSaved').textContent = AppState.storageSavedMB.toLocaleString() + ' MB';
+      document.getElementById('hudScore').textContent = AppState.score.toLocaleString();
+      document.getElementById('badgeExecutedCount').textContent = AppState.executedHistory.length;
+
+      document.getElementById('subStatEmails').textContent = CHORE_DATASETS.emails.totalRemaining.toLocaleString() + ' queued';
+      document.getElementById('subStatFolders').textContent = CHORE_DATASETS.folders.totalRemaining.toLocaleString() + ' scattered files';
+      document.getElementById('subStatExpenses').textContent = CHORE_DATASETS.expenses.totalRemaining.toLocaleString() + ' unverified txns';
+      document.getElementById('subStatLinter').textContent = CHORE_DATASETS.linter.totalRemaining.toLocaleString() + ' AST violations';
+
+      document.getElementById('missionBadge').textContent = ds.title;
+      document.getElementById('missionSubtitle').textContent = ds.subtitle;
+      document.getElementById('labelPrimaryAction').textContent = ds.primaryLabel;
+      document.getElementById('labelSecondaryAction').textContent = ds.secondaryLabel;
+      document.getElementById('comboIndicator').textContent = 'COMBO x' + AppState.combo;
+
+      const pct = ds.initialTotal > 0
+        ? Math.min(100, ((ds.initialTotal - ds.totalRemaining) / ds.initialTotal) * 100)
+        : 100;
+      document.getElementById('progressPercentLabel').textContent = pct.toFixed(1) + '% Purged';
+      document.getElementById('choreProgressBar').style.width = pct + '%';
+
+      document.getElementById('statPurgedCount').textContent = AppState.purgedCount.toLocaleString();
+      document.getElementById('statOrganizedCount').textContent = AppState.organizedCount.toLocaleString();
+      document.getElementById('statTimeSaved').textContent = AppState.timeSavedMinutes + 'm';
+      document.getElementById('bombCountBadge').textContent = AppState.megaBombs;
+
+      document.getElementById('liveArtifactPreview').textContent = buildLiveArtifactOutput();
+      renderAuditTable();
+    }
+
+    function openTacticalInterceptor(enemy) {
+      AppState.tacticalOverlayActive = true;
+      AppState.pendingTacticalTarget = enemy;
+      const t = enemy.template;
+      document.getElementById('tacticalItemCategory').textContent = 'VIP / HIGH-IMPACT ITEM INTERCEPTED';
+      document.getElementById('tacticalItemTitle').textContent = t.subject || t.label;
+      document.getElementById('tacticalItemMeta').textContent = `${t.sender} • Est. Impact: ${t.sizeMB} MB`;
+      document.getElementById('tacticalItemPreview').textContent = t.preview || 'High-value record detected. Choose how the background daemon should process this item.';
+      document.getElementById('tacticalDecisionOverlay').classList.remove('hidden');
+    }
+
+    function resolveTacticalInterceptor(decision) {
+      const enemy = AppState.pendingTacticalTarget;
+      document.getElementById('tacticalDecisionOverlay').classList.add('hidden');
+      AppState.tacticalOverlayActive = false;
+      AppState.pendingTacticalTarget = null;
+      if (!enemy) return;
+
+      SoundFX.play(decision === 'PURGE' ? 'explosion' : 'archive');
+      executeRealChoreItem(enemy.template, decision, 2.5);
+      createBurst(enemy.x, enemy.y, decision === 'PURGE' ? '#f43f5e' : '#10b981', `${decision}!`);
+      enemies = enemies.filter(e => e.id !== enemy.id);
+    }
+
+    // =========================================================================
+    // MAIN 60FPS GAME LOOP
+    // =========================================================================
+    function updateArcadeGame() {
+      if (AppState.gameMode !== 'arcade' || AppState.paused || AppState.tacticalOverlayActive) return;
+
+      // Auto-Pilot AI Bot
+      if (AppState.autoPilot && enemies.length > 0) {
+        const target = enemies.reduce((best, e) => (e.y > best.y ? e : best), enemies[0]);
+        const dx = target.x - Player.x;
+        if (Math.abs(dx) > 8) {
+          Player.x += Math.sign(dx) * Player.speed * 0.85;
+        }
+        if (Player.cooldown <= 0 && Math.abs(dx) < 42) {
+          fireWeapon(target.isVip ? 'archive' : 'laser');
+          Player.cooldown = 12;
+        }
+      }
+
+      if (Player.cooldown > 0) Player.cooldown--;
+
+      // Keyboard / Touch Button Movement
+      if (keys['ArrowLeft'] || keys['KeyA'] || keys['MoveLeft']) Player.x -= Player.speed;
+      if (keys['ArrowRight'] || keys['KeyD'] || keys['MoveRight']) Player.x += Player.speed;
+      if (keys['ArrowUp'] || keys['KeyW'] || keys['MoveUp']) Player.y -= Player.speed;
+      if (keys['ArrowDown'] || keys['KeyS'] || keys['MoveDown']) Player.y += Player.speed;
+
+      Player.x = Math.max(26, Math.min(canvas.width - 26, Player.x));
+      Player.y = Math.max(55, Math.min(canvas.height - 30, Player.y));
+
+      // Spawn Chore Enemies
+      spawnTimer++;
+      if (spawnTimer >= 46 && enemies.length < 9) {
+        spawnTimer = 0;
+        spawnEnemy();
+      }
+
+      // Update Stars
+      stars.forEach(st => {
+        st.y += st.s;
+        if (st.y > canvas.height) {
+          st.y = 0;
+          st.x = Math.random() * canvas.width;
+        }
+      });
+
+      // Update Bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.y < -20 || b.x < -20 || b.x > canvas.width + 20) {
+          bullets.splice(i, 1);
+        }
+      }
+
+      // Update Enemies & Check Collisions
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        e.x += e.vx;
+        e.y += e.vy;
+        if (e.x < 35 || e.x > canvas.width - 35) e.vx *= -1;
+
+        // AI Magnet Upgrade pulls VIP items toward player for instant safe archiving
+        if (AppState.magnetUnlocked && e.isVip) {
+          const dist = Math.hypot(Player.x - e.x, Player.y - e.y);
+          if (dist < 150) {
+            e.x += (Player.x - e.x) * 0.05;
+            e.y += (Player.y - e.y) * 0.05;
+          }
+        }
+
+        // Collision with Player Hull
+        const playerDist = Math.hypot(Player.x - e.x, Player.y - e.y);
+        if (playerDist < e.r + 18) {
+          if (e.isVip) {
+            openTacticalInterceptor(e);
+            break;
+          } else {
+            SoundFX.play('explosion');
+            executeRealChoreItem(e.template, 'PURGE', 1);
+            createBurst(e.x, e.y, '#f59e0b', 'COLLISION PURGE');
+            enemies.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Bullet Collision
+        let destroyed = false;
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          if (Math.hypot(b.x - e.x, b.y - e.y) < e.r + 7) {
+            bullets.splice(j, 1);
+            if (e.isVip && b.mode === 'laser' && !AppState.autoPilot) {
+              // Hitting a VIP item with a destructive laser pauses for Tactical Triage!
+              openTacticalInterceptor(e);
+              destroyed = true;
+              break;
+            }
+            const decision = (b.mode === 'archive' || e.isVip) ? 'ARCHIVE' : 'PURGE';
+            SoundFX.play(decision === 'ARCHIVE' ? 'archive' : 'explosion');
+            executeRealChoreItem(e.template, decision, 1.5);
+            createBurst(e.x, e.y, decision === 'ARCHIVE' ? '#10b981' : '#00f2fe', `${decision} ✓`);
+            enemies.splice(i, 1);
+            destroyed = true;
+            break;
+          }
+        }
+        if (destroyed) continue;
+
+        // Reached bottom of screen
+        if (e.y > canvas.height + 30) {
+          enemies.splice(i, 1);
+          AppState.combo = 1;
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.028;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function drawArcadeGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Background Grid & Stars
+      ctx.strokeStyle = 'rgba(38, 52, 89, 0.25)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 48) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 48) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      stars.forEach(st => {
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw Bullets
+      bullets.forEach(b => {
+        ctx.fillStyle = b.color;
+        ctx.shadowColor = b.color;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.roundRect(b.x - 3, b.y - 10, 6, 16, 3);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // Draw Chore Enemies
+      enemies.forEach(e => {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+
+        // Node Circle
+        const strokeCol = e.isVip ? '#10b981' : '#f43f5e';
+        const fillCol = e.isVip ? 'rgba(16, 185, 129, 0.18)' : 'rgba(244, 63, 94, 0.18)';
+        ctx.fillStyle = fillCol;
+        ctx.strokeStyle = strokeCol;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Icon inside Node
+        ctx.font = '15px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const iconMap = {
+          emails: e.isVip ? '⭐' : '📧',
+          folders: e.isVip ? '📂' : '🗑️',
+          expenses: e.isVip ? '🧾' : '💸',
+          linter: e.isVip ? '🛡️' : '🐛'
+        };
+        ctx.fillText(iconMap[AppState.activeChore] || '⚡', 0, 0);
+
+        // Floating Label Pill
+        ctx.font = '600 11px "JetBrains Mono", monospace';
+        const label = e.template.label;
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(8, 11, 20, 0.88)';
+        ctx.strokeStyle = e.isVip ? 'rgba(16, 185, 129, 0.6)' : 'rgba(244, 63, 94, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-textWidth / 2 - 6, -e.r - 22, textWidth + 12, 17, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = e.isVip ? '#6ee7b7' : '#fda4af';
+        ctx.fillText(label, 0, -e.r - 13);
+        ctx.restore();
+      });
+
+      // Draw Player Cyber-Ship
+      ctx.save();
+      ctx.translate(Player.x, Player.y);
+      ctx.fillStyle = '#00f2fe';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -20);
+      ctx.lineTo(18, 16);
+      ctx.lineTo(0, 9);
+      ctx.lineTo(-18, 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Thruster Flame
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.moveTo(-6, 13);
+      ctx.lineTo(0, 23 + Math.random() * 6);
+      ctx.lineTo(6, 13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Draw Particles & Floating Action Texts
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+        if (p.text) {
+          ctx.font = 'bold 12px "JetBrains Mono", monospace';
+          ctx.fillStyle = p.color;
+          ctx.textAlign = 'center';
+          ctx.fillText(p.text, p.x, p.y);
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+
+      // Victory Banner if Chore Queue reaches 0
+      const ds = CHORE_DATASETS[AppState.activeChore];
+      if (ds.totalRemaining <= 0) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(8, 11, 20, 0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#10b981';
+        ctx.font = '800 24px Inter, sans-serif';
+        ctx.fillText('🎉 CHORE ZERO ACHIEVED!', canvas.width / 2, canvas.height / 2 - 15);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '500 13px "JetBrains Mono", monospace';
+        ctx.fillText('All background tasks in this queue have been executed & logged.', canvas.width / 2, canvas.height / 2 + 15);
+        ctx.restore();
+      }
+    }
+
+    function gameLoop() {
+      updateArcadeGame();
+      drawArcadeGame();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // =========================================================================
+    // INTERACTIVE STORY RPG ENGINE
+    // =========================================================================
+    const STORY_CHAPTERS = {
+      emails: {
+        chapter: 'Chapter 1: The Citadel of 5,000 Unread Scrolls',
+        avatar: '👾',
+        narrative: 'A towering hydra of unread newsletters and automated SaaS alerts blocks your neural inbox. Sensors show 96% of these threads have never been opened, while a few VIP financial & executive dispatches hide inside.'
+      },
+      folders: {
+        chapter: 'Chapter 2: The Labyrinth of ~/Downloads',
+        avatar: '🗂️',
+        narrative: 'Duplicate `.dmg` installers, 84 untitled desktop screenshots, and signed PDF contracts lie tangled across your filesystem. Every strike executes real shell reorganization rules.'
+      },
+      expenses: {
+        chapter: 'Chapter 3: The Phantom Subscription Vault',
+        avatar: '🧛',
+        narrative: 'Recurring SaaS vampires silently drain your monthly burn rate alongside legitimate cloud & client meal write-offs. Audit each transaction cluster to lock in your ledger.'
+      },
+      linter: {
+        chapter: 'Chapter 4: The Haunted Legacy Repository',
+        avatar: '🕷️',
+        narrative: 'Production is riddled with leaked debug tokens, loose equality checks, and unguarded null pointers. Choose your refactoring spell to sanitize the AST in real time.'
+      }
+    };
+
+    function renderStoryEncounter() {
+      const ds = CHORE_DATASETS[AppState.activeChore];
+      const meta = STORY_CHAPTERS[AppState.activeChore];
+      const idx = AppState.storyEncounterIndex % ds.queue.length;
+      const item = ds.queue[idx];
+
+      document.getElementById('storyChapterTitle').textContent = meta.chapter;
+      document.getElementById('storyTurnBadge').textContent = `Encounter #${AppState.storyEncounterIndex + 1}`;
+      document.getElementById('storyBossAvatar').textContent = item.isVip ? '🛡️' : meta.avatar;
+      document.getElementById('storyBossName').textContent = item.label;
+      document.getElementById('storyBossRole').textContent = item.sender;
+      document.getElementById('storyBossHpBar').style.width = ds.totalRemaining > 0 ? '100%' : '0%';
+      document.getElementById('storyBossHpText').textContent = `Remaining Queue: ${ds.totalRemaining.toLocaleString()} items (${item.sizeMB} MB batch)`;
+      document.getElementById('storyNarrativeText').textContent = item.preview || meta.narrative;
+      document.getElementById('storySampleCount').textContent = `Target Batch: ${item.count} items`;
+
+      const previewEl = document.getElementById('storyPayloadPreview');
+      previewEl.innerHTML = `
+        <div><span class="text-slate-400">Entity:</span> ${item.subject}</div>
+        <div><span class="text-slate-400">Source:</span> ${item.sender}</div>
+        <div><span class="text-slate-400">Queued Command:</span> <span class="text-emerald-300">${item.cmd}</span></div>
+      `;
+
+      const choicesGrid = document.getElementById('storyChoicesGrid');
+      choicesGrid.innerHTML = '';
+
+      const actions = [
+        { label: '🔥 Obliterate & Purge Batch', desc: 'Execute destructive cleanup & unsubscribe', type: 'PURGE', style: 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/50 text-rose-300' },
+        { label: '📦 Smart Archive & Route', desc: 'File into structured folder & mark read', type: 'ARCHIVE', style: 'bg-cyan-500/20 hover:bg-cyan-500/30 border-cyan-500/50 text-cyan-300' },
+        { label: '⭐ VIP Approve & Protect', desc: 'Whitelist & apply priority star', type: 'APPROVE', style: 'bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/50 text-emerald-300' }
+      ];
+
+      actions.forEach(act => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `p-3 rounded-xl border text-left transition flex flex-col justify-between ${act.style}`;
+        btn.innerHTML = `
+          <div class="font-bold text-xs">${act.label}</div>
+          <div class="text-[10px] opacity-80 mt-1">${act.desc}</div>
+        `;
+        btn.addEventListener('click', () => {
+          SoundFX.play(act.type === 'PURGE' ? 'explosion' : 'archive');
+          executeRealChoreItem(item, act.type, 4);
+          AppState.storyEncounterIndex++;
+          renderStoryEncounter();
+          showToast(`Executed ${act.type} on ${item.label}`);
+        });
+        choicesGrid.appendChild(btn);
+      });
+    }
+
+    // =========================================================================
+    // AUDIT TABLE, UNDO & DOWNLOAD HANDLERS
+    // =========================================================================
+    function renderAuditTable() {
+      const tbody = document.getElementById('auditTableBody');
+      const totalEl = document.getElementById('modalTotalExecuted');
+      if (!tbody || !totalEl) return;
+      totalEl.textContent = AppState.executedHistory.length;
+
+      if (AppState.executedHistory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-500">No background chore operations executed yet. Fire your weapons or make story choices!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = AppState.executedHistory.slice(0, 40).map(item => `
+        <tr class="hover:bg-slate-900/50">
+          <td class="py-2 px-3 uppercase text-cyan-300">${item.chore}</td>
+          <td class="py-2 px-3 text-slate-200">${item.entity} <span class="text-slate-500">(x${item.delta})</span></td>
+          <td class="py-2 px-3 text-emerald-300 truncate max-w-xs">${item.cmd}</td>
+          <td class="py-2 px-3 text-right">
+            <button type="button" data-undo-id="${item.uid}" class="undo-row-btn px-2 py-0.5 rounded bg-slate-800 hover:bg-rose-500/30 text-slate-300 hover:text-rose-200 border border-slate-700 text-[10px]">Revert</button>
+          </td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('.undo-row-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const uid = btn.getAttribute('data-undo-id');
+          revertOperationById(uid);
+        });
+      });
+    }
+
+    function revertOperationById(uid) {
+      const idx = AppState.executedHistory.findIndex(item => item.uid === uid);
+      if (idx === -1) return;
+      const op = AppState.executedHistory[idx];
+      AppState.executedHistory.splice(idx, 1);
+
+      const ds = CHORE_DATASETS[op.chore];
+      if (ds) ds.totalRemaining += op.delta;
+      AppState.storageSavedMB = Math.max(0, +(AppState.storageSavedMB - op.mb).toFixed(1));
+      if (op.decision === 'PURGED') {
+        AppState.purgedCount = Math.max(0, AppState.purgedCount - op.delta);
+      } else {
+        AppState.organizedCount = Math.max(0, AppState.organizedCount - op.delta);
+      }
+      if (op.chore === 'linter' && typeof op.lineIdx === 'number') {
+        const lineObj = CHORE_DATASETS.linter.codeLines[op.lineIdx];
+        if (lineObj) lineObj.fixedState = false;
+      }
+      refreshAllTelemetry();
+      showToast(`Reverted operation on ${op.entity}`);
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      const text = document.getElementById('toastMessage');
+      if (!banner || !text) return;
+      text.textContent = msg;
+      banner.classList.remove('hidden');
+      clearTimeout(banner._timer);
+      banner._timer = setTimeout(() => banner.classList.add('hidden'), 2600);
+    }
+
+    function triggerDownloadArtifact() {
+      const content = buildLiveArtifactOutput();
+      const extMap = { emails: 'imap_purge.log', folders: 'organize_folders.sh', expenses: 'audited_expenses.csv', linter: 'sanitized_code.js' };
+      const filename = extMap[AppState.activeChore] || 'chore_output.txt';
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded ${filename}`);
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Seed 2 initial enemies so the canvas is lively right away
+      spawnEnemy();
+      spawnEnemy();
+      refreshAllTelemetry();
+      renderStoryEncounter();
+      requestAnimationFrame(gameLoop);
+
+      // Chore Tab Switching
+      document.querySelectorAll('.chore-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const chore = btn.getAttribute('data-chore');
+          AppState.activeChore = chore;
+          document.querySelectorAll('.chore-tab').forEach(b => {
+            b.className = 'chore-tab flex items-center gap-2 px-3 py-2 rounded-lg text-left transition border bg-slate-900/70 border-slate-800 hover:border-slate-700 text-slate-300';
+          });
+          btn.className = 'chore-tab active-chore-tab flex items-center gap-2 px-3 py-2 rounded-lg text-left transition border bg-cyan-500/15 border-cyan-400/60 text-white';
+          enemies = [];
+          spawnEnemy();
+          spawnEnemy();
+          refreshAllTelemetry();
+          renderStoryEncounter();
+        });
+      });
+
+      // Mode Switcher (Arcade vs Interactive Story)
+      const modeBtnArcade = document.getElementById('modeBtnArcade');
+      const modeBtnStory = document.getElementById('modeBtnStory');
+      modeBtnArcade.addEventListener('click', () => {
+        AppState.gameMode = 'arcade';
+        document.getElementById('arcadeStageContainer').classList.remove('hidden');
+        document.getElementById('storyStageContainer').classList.add('hidden');
+        modeBtnArcade.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-gradient-to-r from-cyan-500 to-sky-600 text-slate-950 shadow';
+        modeBtnStory.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-white';
+        resizeCanvas();
+      });
+
+      modeBtnStory.addEventListener('click', () => {
+        AppState.gameMode = 'story';
+        document.getElementById('arcadeStageContainer').classList.add('hidden');
+        document.getElementById('storyStageContainer').classList.remove('hidden');
+        modeBtnStory.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow';
+        modeBtnArcade.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-white';
+        renderStoryEncounter();
+      });
+
+      // Keyboard Controls
+      window.addEventListener('keydown', e => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+        keys[e.code] = true;
+        if (e.code === 'Space') {
+          e.preventDefault();
+          fireWeapon('laser');
+        } else if (e.code === 'KeyE') {
+          e.preventDefault();
+          fireWeapon('archive');
+        } else if (AppState.tacticalOverlayActive) {
+          if (e.key === '1') resolveTacticalInterceptor('PURGE');
+          if (e.key === '2') resolveTacticalInterceptor('ARCHIVE');
+          if (e.key === '3') resolveTacticalInterceptor('APPROVE');
+        }
+      });
+
+      window.addEventListener('keyup', e => {
+        keys[e.code] = false;
+      });
+
+      // Touch / Mouse Drag directly on Canvas
+      let draggingCanvas = false;
+      const movePlayerToPointer = (clientX, clientY) => {
+        const rect = canvas.getBoundingClientRect();
+        Player.x = Math.max(25, Math.min(canvas.width - 25, clientX - rect.left));
+        Player.y = Math.max(55, Math.min(canvas.height - 28, clientY - rect.top));
+      };
+
+      canvas.addEventListener('pointerdown', e => {
+        draggingCanvas = true;
+        movePlayerToPointer(e.clientX, e.clientY);
+        fireWeapon('laser');
+      });
+      canvas.addEventListener('pointermove', e => {
+        if (draggingCanvas) movePlayerToPointer(e.clientX, e.clientY);
+      });
+      window.addEventListener('pointerup', () => {
+        draggingCanvas = false;
+      });
+
+      // On-Screen Mobile Directional Buttons
+      const bindHoldButton = (id, keyName) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('pointerdown', e => { e.preventDefault(); keys[keyName] = true; });
+        el.addEventListener('pointerup', () => { keys[keyName] = false; });
+        el.addEventListener('pointerleave', () => { keys[keyName] = false; });
+      };
+      bindHoldButton('btnMoveLeft', 'MoveLeft');
+      bindHoldButton('btnMoveRight', 'MoveRight');
+      bindHoldButton('btnMoveUp', 'MoveUp');
+      bindHoldButton('btnMoveDown', 'MoveDown');
+
+      // Weapon Buttons
+      document.getElementById('btnFireLaser').addEventListener('click', () => fireWeapon('laser'));
+      document.getElementById('btnArchiveBeam').addEventListener('click', () => fireWeapon('archive'));
+      document.getElementById('btnMegaBomb').addEventListener('click', () => {
+        if (AppState.megaBombs <= 0) {
+          showToast('No Mega-Batch Bombs left! Refill in upgrades below.');
+          return;
+        }
+        AppState.megaBombs--;
+        SoundFX.play('bomb');
+        const ds = CHORE_DATASETS[AppState.activeChore];
+        enemies.forEach(e => {
+          executeRealChoreItem(e.template, e.isVip ? 'ARCHIVE' : 'PURGE', 3);
+          createBurst(e.x, e.y, '#f59e0b', 'MEGA BATCH!');
+        });
+        if (enemies.length === 0 && ds.queue.length > 0) {
+          executeRealChoreItem(ds.queue[0], 'PURGE', 5);
+        }
+        enemies = [];
+        refreshAllTelemetry();
+        showToast('💥 Mega-Batch executed across active chore queue!');
+      });
+
+      // Tactical Modal Buttons
+      document.getElementById('btnTacticalPurge').addEventListener('click', () => resolveTacticalInterceptor('PURGE'));
+      document.getElementById('btnTacticalArchive').addEventListener('click', () => resolveTacticalInterceptor('ARCHIVE'));
+      document.getElementById('btnTacticalKeep').addEventListener('click', () => resolveTacticalInterceptor('APPROVE'));
+
+      // Auto-Bot & Pause & Mute
+      const btnAutoPilot = document.getElementById('btnAutoPilot');
+      btnAutoPilot.addEventListener('click', () => {
+        AppState.autoPilot = !AppState.autoPilot;
+        btnAutoPilot.textContent = AppState.autoPilot ? '🤖 AUTO-BOT: ON' : '🤖 AUTO-BOT: OFF';
+        btnAutoPilot.classList.toggle('bg-amber-500/25', AppState.autoPilot);
+      });
+
+      const btnPauseGame = document.getElementById('btnPauseGame');
+      btnPauseGame.addEventListener('click', () => {
+        AppState.paused = !AppState.paused;
+        btnPauseGame.textContent = AppState.paused ? '▶ RESUME' : '⏸ PAUSE';
+      });
+
+      document.getElementById('btnToggleMute').addEventListener('click', () => {
+        SoundFX.muted = !SoundFX.muted;
+        document.getElementById('iconSoundOn').classList.toggle('hidden', SoundFX.muted);
+        document.getElementById('iconSoundOff').classList.toggle('hidden', !SoundFX.muted);
+      });
+
+      // Upgrades
+      document.getElementById('upgradeSpreadBtn').addEventListener('click', () => {
+        if (AppState.spreadShotUnlocked) return showToast('Multi-Thread Blaster already active!');
+        if (AppState.score < 500) return showToast('Need 500 PTS to unlock Multi-Thread Blaster.');
+        AppState.score -= 500;
+        AppState.spreadShotUnlocked = true;
+        document.getElementById('upgradeSpreadBadge').textContent = 'ACTIVE ✓';
+        refreshAllTelemetry();
+        showToast('⚡ Multi-Thread 3-Way Blaster Unlocked!');
+      });
+
+      document.getElementById('upgradeMagnetBtn').addEventListener('click', () => {
+        if (AppState.magnetUnlocked) return showToast('AI Auto-Classifier already active!');
+        if (AppState.score < 750) return showToast('Need 750 PTS to unlock AI Auto-Classifier.');
+        AppState.score -= 750;
+        AppState.magnetUnlocked = true;
+        document.getElementById('upgradeMagnetBadge').textContent = 'ACTIVE ✓';
+        refreshAllTelemetry();
+        showToast('🧲 AI Auto-Classifier Magnet Unlocked!');
+      });
+
+      document.getElementById('upgradeBombBtn').addEventListener('click', () => {
+        if (AppState.score < 400) return showToast('Need 400 PTS to refill Mega-Batch Bomb.');
+        AppState.score -= 400;
+        AppState.megaBombs++;
+        refreshAllTelemetry();
+        showToast('💥 +1 Mega-Batch Bomb added!');
+      });
+
+      // Sidebar Controls
+      document.getElementById('btnClearLog').addEventListener('click', () => {
+        document.getElementById('executionStreamLog').innerHTML = '';
+      });
+
+      document.getElementById('btnCopyArtifact').addEventListener('click', () => {
+        const text = buildLiveArtifactOutput();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => showToast('Copied output to clipboard!')).catch(() => fallbackCopy(text));
+        } else {
+          fallbackCopy(text);
+        }
+      });
+
+      function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('Copied output to clipboard!'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+
+      document.getElementById('btnUndoLastAction').addEventListener('click', () => {
+        if (AppState.executedHistory.length === 0) return showToast('Nothing to undo yet.');
+        revertOperationById(AppState.executedHistory[0].uid);
+      });
+
+      document.getElementById('btnDownloadOutput').addEventListener('click', triggerDownloadArtifact);
+      document.getElementById('btnModalDownloadScript').addEventListener('click', triggerDownloadArtifact);
+
+      // Modals
+      const auditModal = document.getElementById('auditModal');
+      document.getElementById('btnOpenAuditModal').addEventListener('click', () => {
+        renderAuditTable();
+        auditModal.classList.remove('hidden');
+      });
+      document.getElementById('btnCloseAuditModal').addEventListener('click', () => auditModal.classList.add('hidden'));
+
+      const customDataModal = document.getElementById('customDataModal');
+      document.getElementById('btnOpenCustomData').addEventListener('click', () => customDataModal.classList.remove('hidden'));
+      document.getElementById('btnCloseCustomDataModal').addEventListener('click', () => customDataModal.classList.add('hidden'));
+
+      document.getElementById('btnLoadSampleCustom').addEventListener('click', () => {
+        document.getElementById('customDataChoreSelect').value = 'linter';
+        document.getElementById('customDataTextarea').value = [
+          'var legacySessionCount = 42;',
+          'console.log("DEBUG API KEY:", process.env.SECRET_KEY);',
+          'if (status == "200") {',
+          '  let unusedCacheArray = new Array(500);',
+          '}'
+        ].join('\n');
+      });
+
+      document.getElementById('btnApplyCustomData').addEventListener('click', () => {
+        const targetChore = document.getElementById('customDataChoreSelect').value;
+        const raw = document.getElementById('customDataTextarea').value.trim();
+        if (!raw) return showToast('Please paste at least one line of data or code.');
+
+        const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+        const ds = CHORE_DATASETS[targetChore];
+
+        if (targetChore === 'linter') {
+          ds.codeLines = lines.map((lineText, idx) => {
+            const fixed = lineText
+              .replace(/\bvar\s+/g, 'const ')
+              .replace(/console\.log\([^)]*\);?/g, '// [SANITIZED LOG REMOVED]')
+              .replace(/([^=!])==([^=])/g, '$1===$2');
+            return { line: idx + 1, rule: 'custom-ast', bad: lineText, fixed: fixed === lineText ? lineText + ' // [VERIFIED CLEAN]' : fixed, fixedState: false };
+          });
+          ds.queue = ds.codeLines.map((c, idx) => ({
+            id: 'cust-ln-' + idx,
+            label: `Line ${c.line} AST`,
+            sender: `UserUploadedCode.js:${c.line}`,
+            subject: c.bad,
+            count: 5,
+            sizeMB: 0.5,
+            isVip: false,
+            lineIdx: idx,
+            cmd: `AST Sanitized Line ${c.line}: ${c.fixed}`
+          }));
+          ds.totalRemaining = lines.length * 5;
+          ds.initialTotal = ds.totalRemaining;
+        } else {
+          ds.queue = lines.map((lineText, idx) => ({
+            id: 'cust-' + idx,
+            label: lineText.slice(0, 22),
+            sender: lineText,
+            subject: lineText,
+            count: 10,
+            sizeMB: 2.0,
+            isVip: idx % 4 === 0,
+            cmd: `Processed custom item: ${lineText}`
+          }));
+          ds.totalRemaining = lines.length * 10;
+          ds.initialTotal = ds.totalRemaining;
+        }
+
+        // Switch to that chore tab
+        const tabBtn = document.querySelector(`.chore-tab[data-chore="${targetChore}"]`);
+        if (tabBtn) tabBtn.click();
+        customDataModal.classList.add('hidden');
+        showToast(`Injected ${lines.length} custom items into ${targetChore.toUpperCase()} engine!`);
+      });
+    });
+  </script>
+</body>
+</html>
